@@ -1,0 +1,17 @@
+{
+    "manifest_version": 2,
+
+    "name": "Browser Rewind",
+    "description": "Does stuff",
+    "version": "1.0",
+    "permissions": ["tabs",
+                    "storage",
+                    "unlimitedStorage"],
+    "options_page": "options.html",
+    "background": {
+        "scripts": ["events.js"]
+    },
+    "browser_action": {
+        "default_icon": "icon.png"
+    }
+}
