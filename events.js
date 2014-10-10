@@ -30,7 +30,9 @@ chrome.tabs.query({},function(tabs){
 });
 
 function snapshot(){
-    var currentSnapshot = currentBrowserState;    
+    var currentSnapshot = {};
+    alert("test")
+    currentSnapshot["windows"]=currentBrowserState["windows"];
     currentSnapshot["timestamp"]=Date.now();
 
     chrome.storage.local.get("numSnapshots",function(result){
@@ -56,6 +58,7 @@ function snapshot(){
             });
         }
     });
+    alert(currentBrowserState["timestamp"]);
 }
 
 chrome.browserAction.onClicked.addListener(function(tab) { // I think this opens the options page when you click the icon?
