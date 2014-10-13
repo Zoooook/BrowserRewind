@@ -261,7 +261,6 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo){
         var eventObject = {"eventType": "Attached", "windowId": attachInfo.newWindowId, "tabId": tabId, "position": attachInfo.newPosition};
         logEvent(eventObject);
 
-
         if(currentBrowserState.windows.hasOwnProperty("window"+attachInfo.newWindowId)){
             for(var tabI in currentBrowserState.windows["window"+attachInfo.newWindowId].tabs)
                 if(currentBrowserState.windows["window"+attachInfo.newWindowId].tabs[tabI].index >= attachInfo.newPosition)
