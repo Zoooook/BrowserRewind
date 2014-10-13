@@ -1,13 +1,15 @@
-//get events to update the current browser state
+//verify onReplaced works correctly
 //play back events up to a specific timestamp in memory (and display on options page)
 //recreate browser state
 
 var eventNum;
 var currentBrowserState = {};
+var events = [];
 
 chrome.tabs.query({},function(tabs){
 //    chrome.storage.local.clear();
 //    alert("Snapshotting");
+    currentBrowserState.tabs = {};
     currentBrowserState.windows={};
     for(var i=0; i<tabs.length; ++i){
         if(!tabs[i].incognito){
@@ -84,7 +86,7 @@ chrome.browserAction.onClicked.addListener(function(tab) { // I think this opens
           "\nwidth: " + tab.width +
           "\nheight: " + tab.height +
           "\nsessionId: " + tab.sessionId);
-}*/ // for alerts
+}*/
 
 function logEvent(eventObject){
     eventObject.timestamp=Date.now();
@@ -105,30 +107,43 @@ chrome.tabs.onCreated.addListener(function(tab){
             currentBrowserState.windows["window"+tab.windowId]={};
             currentBrowserState.windows["window"+tab.windowId].id=tab.windowId;
             currentBrowserState.windows["window"+tab.windowId].tabs={};
-        }
+        }else
+            for(var tabI in currentBrowserState.windows["window"+tab.windowId].tabs)
+                if(currentBrowserState.windows["window"+tab.windowId].tabs[tabI].index >= tab.index)
+                    ++currentBrowserState.windows["window"+tab.windowId].tabs[tabI].index;
+
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id]={};
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id].id=tab.id;
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id].index=tab.index;
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id].pinned=tab.pinned;
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id].title=tab.title;
         currentBrowserState.windows["window"+tab.windowId].tabs["tab"+tab.id].url=tab.url;
-        //modify other indices
     }
 });
 
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
-    //figure out something for window closing
+    //figure out something for window closing -- or not? Fire multiple events when multiple tabs close at once
     if(currentBrowserState.windows.hasOwnProperty("window"+removeInfo.windowId) && currentBrowserState.windows["window"+removeInfo.windowId].tabs.hasOwnProperty("tab"+tabId)){
 //        alert("eventType: Removed\n\nwindowId: " + removeInfo.windowId + "\ntabId: " + tabId + "\nisWindowClosing: " + removeInfo.isWindowClosing);
         var eventObject = {"eventType": "Removed", "windowId": removeInfo.windowId, "tabId": tabId};
         logEvent(eventObject);
 
-        delete currentBrowserState.windows["window"+removeInfo.windowId].tabs["tab"+tabId];
-        //modify other indices
+        var numTabs=0;
+        for(var tabI in currentBrowserState.windows["window"+removeInfo.windowId].tabs){
+            ++numTabs;
+            if(currentBrowserState.windows["window"+removeInfo.windowId].tabs[tabI].index > currentBrowserState.windows["window"+removeInfo.windowId].tabs["tab"+tabId].index)
+                --currentBrowserState.windows["window"+removeInfo.windowId].tabs[tabI].index;
+        }
+
+        if(numTabs>1)
+            delete currentBrowserState.windows["window"+removeInfo.windowId].tabs["tab"+tabId];
+        else
+            delete currentBrowserState.windows["window"+removeInfo.windowId];
     }
 });
 
-chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){
+chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){ // test later when chrome settings aren't retarded
+    alert("replaced");
     var tabExists = false;
     var windowId = 0;
     for(chromeWindow in currentBrowserState.windows){
@@ -139,9 +154,10 @@ chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){
         }
     }
     if(tabExists){
-//        alert("eventType: Replaced\n\nwindowId: " + windowId + "\ntabId: " + removedTabId + "newTabId: " + addedTabId);
+        alert("eventType: Replaced\n\nwindowId: " + windowId + "\ntabId: " + removedTabId + "newTabId: " + addedTabId);
         var eventObject = {"eventType": "Replaced", "windowId": windowId, "tabId": removedTabId, "newTabId": addedTabId};
         logEvent(eventObject);
+        events.push(eventObject);
 
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId]={};
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId].id=currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId].id;
@@ -168,7 +184,17 @@ chrome.tabs.onMoved.addListener(function(tabId, moveInfo){
 //        alert("eventType: Moved\n\nwindowId: " + moveInfo.windowId + "\ntabId: " + tabId + "\nfromIndex: " + moveInfo.fromIndex + "\ntoIndex: " + moveInfo.toIndex);
         var eventObject = {"eventType": "Moved", "windowId": moveInfo.windowId, "tabId": tabId, "fromIndex": moveInfo.fromIndex, "toIndex": moveInfo.toIndex};
         logEvent(eventObject);
-        //update currentBrowserState
+
+        if(moveInfo.fromIndex < moveInfo.toIndex){
+            for(var tabI in currentBrowserState.windows["window"+moveInfo.windowId].tabs)
+                if(currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index > moveInfo.fromIndex && currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index <= moveInfo.toIndex)
+                    --currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index;
+        }else{
+            for(var tabI in currentBrowserState.windows["window"+moveInfo.windowId].tabs)
+                if(currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index < moveInfo.fromIndex && currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index >= moveInfo.toIndex)
+                    ++currentBrowserState.windows["window"+moveInfo.windowId].tabs[tabI].index;
+        }
+        currentBrowserState.windows["window"+moveInfo.windowId].tabs["tab"+tabId].index=moveInfo.toIndex
     }
 });
 
@@ -209,35 +235,49 @@ chrome.tabs.onDetached.addListener(function(tabId, detachInfo){
         var eventObject = {"eventType": "Detached", "windowId": detachInfo.oldWindowId, "tabId": tabId, "position": detachInfo.oldPosition};
         logEvent(eventObject);
 
-        currentBrowserState["tab"+tabId]={};
-        currentBrowserState["tab"+tabId].id=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].id;
-        currentBrowserState["tab"+tabId].pinned=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].pinned;
-        currentBrowserState["tab"+tabId].title=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].title;
-        currentBrowserState["tab"+tabId].url=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].url;
-        delete currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId];
-        //modify other indices
+        var numTabs=0;
+        for(var tabI in currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs){
+            ++numTabs;
+            if(currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs[tabI].index > detachInfo.oldPosition)
+                --currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs[tabI].index;
+        }
+
+        currentBrowserState.tabs["tab"+tabId]={};
+        currentBrowserState.tabs["tab"+tabId].id=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].id;
+        currentBrowserState.tabs["tab"+tabId].pinned=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].pinned;
+        currentBrowserState.tabs["tab"+tabId].title=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].title;
+        currentBrowserState.tabs["tab"+tabId].url=currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId].url;
+
+        if(numTabs>1)
+            delete currentBrowserState.windows["window"+detachInfo.oldWindowId].tabs["tab"+tabId];
+        else
+            delete currentBrowserState.windows["window"+detachInfo.oldWindowId];
     }
 });
 
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo){
-    if(currentBrowserState.hasOwnProperty("tab"+tabId)){
+    if(currentBrowserState.tabs.hasOwnProperty("tab"+tabId)){
 //        alert("eventType: Attached\n\nnewWindowId: " + attachInfo.newWindowId + "\ntabId: " + tabId + "\nnewPosition: " + attachInfo.newPosition);
         var eventObject = {"eventType": "Attached", "windowId": attachInfo.newWindowId, "tabId": tabId, "position": attachInfo.newPosition};
         logEvent(eventObject);
 
-        if(!currentBrowserState.windows.hasOwnProperty("window"+attachInfo.newWindowId)){
+
+        if(currentBrowserState.windows.hasOwnProperty("window"+attachInfo.newWindowId)){
+            for(var tabI in currentBrowserState.windows["window"+attachInfo.newWindowId].tabs)
+                if(currentBrowserState.windows["window"+attachInfo.newWindowId].tabs[tabI].index >= attachInfo.newPosition)
+                    ++currentBrowserState.windows["window"+attachInfo.newWindowId].tabs[tabI].index;
+        }else{
             currentBrowserState.windows["window"+attachInfo.newWindowId]={};
             currentBrowserState.windows["window"+attachInfo.newWindowId].id=attachInfo.newWindowId;
             currentBrowserState.windows["window"+attachInfo.newWindowId].tabs={};
         }
-        currentBrowserState.windows["window"+attachInfo.newWindowId].activeTab=tabId; // I think this is how it should work, it doesn't seem to fire an activated event here.
         currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId]={};
-        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].id=currentBrowserState["tab"+tabId].id;
+        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].id=currentBrowserState.tabs["tab"+tabId].id;
         currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].index=attachInfo.newPosition;
-        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].pinned=currentBrowserState["tab"+tabId].pinned;
-        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].title=currentBrowserState["tab"+tabId].title;
-        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].url=currentBrowserState["tab"+tabId].url;
-        delete currentBrowserState["tab"+tabId];
-        //modify other indices
+        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].pinned=currentBrowserState.tabs["tab"+tabId].pinned;
+        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].title=currentBrowserState.tabs["tab"+tabId].title;
+        currentBrowserState.windows["window"+attachInfo.newWindowId].tabs["tab"+tabId].url=currentBrowserState.tabs["tab"+tabId].url;
+        delete currentBrowserState.tabs["tab"+tabId];
+
     }
 });
