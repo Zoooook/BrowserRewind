@@ -1,5 +1,5 @@
-//verify onReplaced works correctly
 //play back events up to a specific timestamp in memory (and display on options page)
+//auto snapshot every <1000 events -- maximum recursion depth is 1000
 //recreate browser state
 
 var eventNum;
@@ -142,10 +142,10 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
     }
 });
 
-chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){ // test later when chrome settings aren't retarded
+chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){
     var tabExists = false;
     var windowId = 0;
-    for(chromeWindow in currentBrowserState.windows){
+    for(var chromeWindow in currentBrowserState.windows){
         if(currentBrowserState.windows[chromeWindow].tabs.hasOwnProperty("tab"+removedTabId)){
             tabExists = true;
             windowId = currentBrowserState.windows[chromeWindow].id;
