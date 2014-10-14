@@ -1,7 +1,7 @@
-//auto snapshot every <1000 events -- maximum recursion depth is 1000
 //recreate browser state
 
 var eventNum;
+var nextSnapshotEventIndex=50;
 var currentBrowserState = {};
 
 chrome.tabs.query({},function(tabs){
@@ -45,6 +45,7 @@ function snapshot(){
             chrome.storage.local.get("numEvents",function(result2){
                 eventNum=result2.numEvents;
                 currentSnapshot.eventIndex=result2.numEvents;
+                nextSnapshotEventIndex=result2.numEvents+50;
                 var store={};
                 store["Snapshot"+result.numSnapshots]=currentSnapshot;
                 chrome.storage.local.set(store);
@@ -74,6 +75,15 @@ function logEvent(eventObject){
     ++eventNum;
     chrome.storage.local.set({"numEvents": eventNum});
     playEvent(currentBrowserState, eventObject);
+    if(eventNum>=nextSnapshotEventIndex){
+        var isDetached = false;
+        for(var tab in currentBrowserState.tabs){
+            isDetached = true;
+            break;
+        }
+        if(!isDetached)
+            snapshot();
+    }
 }
 
 chrome.tabs.onCreated.addListener(function(tab){

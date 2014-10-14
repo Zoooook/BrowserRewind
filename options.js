@@ -52,11 +52,11 @@ function displayVariables(){
     });
 }
 
-function displayBrowserState(title, browserState){
+function displayBrowserState(title, browserState, timestamp, eventIndex){
     if(browserState.hasOwnProperty("timestamp"))
         $("#snapshot").html(title + ":<ul id=\"chromeWindows\"><li>timestamp: " + browserState.timestamp + "</li><p></p><li>eventIndex: " + browserState.eventIndex + "</li><p></p></ul>");
     else
-        $("#snapshot").html(title + ":<ul id=\"chromeWindows\"></ul>");
+        $("#snapshot").html(title + ":<ul id=\"chromeWindows\"><li>timestamp: " + timestamp + "</li><p></p><li>eventIndex: " + eventIndex + "</li><p></p></ul>");
 
     for(var chromeWindow in browserState.windows){
         $("#chromeWindows").append("<li>"+chromeWindow+"</li><ul id="+chromeWindow+"></ul><br/>");
@@ -106,14 +106,14 @@ function replayEvents(replayBrowserState, eventIndex, numEvents, timestamp){
                 playEvent(replayBrowserState, events[eventNum]);
                 replayEvents(replayBrowserState, eventIndex+1, numEvents, timestamp);
             }else
-                keepGoing(replayBrowserState, timestamp);
+                keepGoing(replayBrowserState, timestamp, eventIndex);
         });
     }else
-        keepGoing(replayBrowserState, timestamp);
+        keepGoing(replayBrowserState, timestamp, eventIndex);
 }
 
-function keepGoing(replayBrowserState, timestamp){
-    displayBrowserState(timestamp, replayBrowserState);
+function keepGoing(replayBrowserState, timestamp, eventIndex){
+    displayBrowserState("Replayed", replayBrowserState, timestamp, eventIndex);
 }
 
 /*function copySnapshot(from, to){
