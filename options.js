@@ -1,3 +1,5 @@
+// sort tabs in options display by index, tighten up display and remove properties
+
 $(function(){
     displayVariables();
 
@@ -56,13 +58,26 @@ function displayBrowserState(title, browserState){
         $("#snapshot").html(title + ":<ul id=\"chromeWindows\"><li>timestamp: " + browserState.timestamp + "</li><p></p><li>eventIndex: " + browserState.eventIndex + "</li><p></p></ul>");
     else
         $("#snapshot").html(title + ":<ul id=\"chromeWindows\"></ul>");
+
     for(var chromeWindow in browserState.windows){
-        $("#chromeWindows").append("<li>"+chromeWindow+"</li><ul><br/><li>Active Tab: "+browserState.windows[chromeWindow].activeTab+"</li><p></p><li>Tabs:</li><ul id="+chromeWindow+"></ul></ul><br/>");
+        $("#chromeWindows").append("<li>"+chromeWindow+"</li><ul id="+chromeWindow+"></ul><br/>");
+        var numTabs=0;
         for(var tab in browserState.windows[chromeWindow].tabs){
-            for(var key in browserState.windows[chromeWindow].tabs[tab]){
-                $("#"+chromeWindow).append("<li>"+key+": "+browserState.windows[chromeWindow].tabs[tab][key]+"</li>");
+            $("#"+chromeWindow).append("<div id=\""+chromeWindow+"tabindex"+numTabs+"\"></div>");
+            ++numTabs;
+        }
+        for(var tab in browserState.windows[chromeWindow].tabs){
+            if(browserState.windows[chromeWindow].activeTab == browserState.windows[chromeWindow].tabs[tab].id){
+                if(browserState.windows[chromeWindow].tabs[tab].pinned)
+                    $("#"+chromeWindow+"tabindex"+browserState.windows[chromeWindow].tabs[tab].index).append("<li>Pinned -- <b>"+browserState.windows[chromeWindow].tabs[tab].title+"</b><ul style=\"list-style-type:none\"><li>("+browserState.windows[chromeWindow].tabs[tab].url+")</li></ul></li>");
+                else
+                    $("#"+chromeWindow+"tabindex"+browserState.windows[chromeWindow].tabs[tab].index).append("<li><b>"+browserState.windows[chromeWindow].tabs[tab].title+"</b><ul style=\"list-style-type:none\"><li>("+browserState.windows[chromeWindow].tabs[tab].url+")</li></ul></li>");
+            }else{
+                if(browserState.windows[chromeWindow].tabs[tab].pinned)
+                    $("#"+chromeWindow+"tabindex"+browserState.windows[chromeWindow].tabs[tab].index).append("<li>Pinned -- "+browserState.windows[chromeWindow].tabs[tab].title+"<ul style=\"list-style-type:none\"><li>("+browserState.windows[chromeWindow].tabs[tab].url+")</li></ul></li>");
+                else
+                    $("#"+chromeWindow+"tabindex"+browserState.windows[chromeWindow].tabs[tab].index).append("<li>"+browserState.windows[chromeWindow].tabs[tab].title+"<ul style=\"list-style-type:none\"><li>("+browserState.windows[chromeWindow].tabs[tab].url+")</li></ul></li>");
             }
-            $("#"+chromeWindow).append("<p></p>");
         }
     }
 }
