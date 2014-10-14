@@ -30,6 +30,7 @@ chrome.tabs.query({},function(tabs){
 
 function snapshot(){
     var currentSnapshot = {};
+    currentSnapshot.tabs=currentBrowserState.tabs;
     currentSnapshot.windows=currentBrowserState.windows;
     currentSnapshot.timestamp=Date.now();
     chrome.storage.local.get("numSnapshots",function(result){
