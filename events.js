@@ -143,21 +143,19 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo){
 });
 
 chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){ // test later when chrome settings aren't retarded
-    alert("replaced");
     var tabExists = false;
     var windowId = 0;
     for(chromeWindow in currentBrowserState.windows){
-        if(chromeWindow.hasOwnProperty("tab"+removedTabId)){
+        if(currentBrowserState.windows[chromeWindow].tabs.hasOwnProperty("tab"+removedTabId)){
             tabExists = true;
-            windowId = chromeWindow.id;
+            windowId = currentBrowserState.windows[chromeWindow].id;
             break;
         }
     }
     if(tabExists){
-        alert("eventType: Replaced\n\nwindowId: " + windowId + "\ntabId: " + removedTabId + "newTabId: " + addedTabId);
+//        alert("eventType: Replaced\n\nwindowId: " + windowId + "\ntabId: " + removedTabId + "\nnewTabId: " + addedTabId);
         var eventObject = {"eventType": "Replaced", "windowId": windowId, "tabId": removedTabId, "newTabId": addedTabId};
         logEvent(eventObject);
-        events.push(eventObject);
 
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId]={};
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId].id=currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId].id;
@@ -165,7 +163,7 @@ chrome.tabs.onReplaced.addListener(function(addedTabId, removedTabId){ // test l
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId].pinned=currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId].pinned;
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId].title=currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId].title;
         currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId].url=currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId].url;
-        delete currentBrowserState.windows["window"+windowId].tabs["tab"+addedTabId];
+        delete currentBrowserState.windows["window"+windowId].tabs["tab"+removedTabId];
     }
 });
 
