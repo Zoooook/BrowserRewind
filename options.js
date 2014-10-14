@@ -1,5 +1,3 @@
-// sort tabs in options display by index, tighten up display and remove properties
-
 $(function(){
     displayVariables();
 
@@ -22,16 +20,17 @@ $(function(){
         chrome.storage.local.get("timestamps", function(result){
             var time = parseInt($("#timestamptextbox").val());
             var i = findSnapshot(time,result.timestamps);
-            var snapshotNum = "Snapshot"+i;
-            chrome.storage.local.get(snapshotNum, function(result2){
-                var replayBrowserState = {};
-                replayBrowserState.tabs = result2[snapshotNum].tabs;
-                replayBrowserState.windows = result2[snapshotNum].windows;
-                chrome.storage.local.get("numEvents",function(result3){
-                    replayEvents(replayBrowserState, result2[snapshotNum].eventIndex, result3.numEvents, time);
+            if(i>=0){
+                var snapshotNum = "Snapshot"+i;
+                chrome.storage.local.get(snapshotNum, function(result2){
+                    var replayBrowserState = {};
+                    replayBrowserState.tabs = result2[snapshotNum].tabs;
+                    replayBrowserState.windows = result2[snapshotNum].windows;
+                    chrome.storage.local.get("numEvents",function(result3){
+                        replayEvents(replayBrowserState, result2[snapshotNum].eventIndex, result3.numEvents, time);
+                    });
                 });
-
-            });
+            }
         });
     });
 });
