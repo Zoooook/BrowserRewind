@@ -1,4 +1,40 @@
 $(function(){
+    displayVariables();
+
+    $("#snapshotbutton").on('click',function(){
+        displayVariables();
+
+        var snapshotNum = "Snapshot"+$("#snapshottextbox").val();
+        chrome.storage.local.get(snapshotNum, function(result){
+            if(result[snapshotNum]==undefined)
+                $("#snapshot").html("<p><b>Nope!</b></p>");
+            else{
+                console.log(result[snapshotNum]);
+                displayBrowserState(snapshotNum, result[snapshotNum]);
+            }
+        });
+    });
+
+    $("#timestampbutton").on('click',function(){
+        displayVariables();
+        chrome.storage.local.get("timestamps", function(result){
+            var time = parseInt($("#timestamptextbox").val());
+            var i = findSnapshot(time,result.timestamps);
+            var snapshotNum = "Snapshot"+i;
+            chrome.storage.local.get(snapshotNum, function(result2){
+                var replayBrowserState = {};
+                replayBrowserState.tabs = result2[snapshotNum].tabs;
+                replayBrowserState.windows = result2[snapshotNum].windows;
+                chrome.storage.local.get("numEvents",function(result3){
+                    replayEvents(replayBrowserState, result2[snapshotNum].eventIndex, result3.numEvents, time);
+                });
+
+            });
+        });
+    });
+});
+
+function displayVariables(){
     chrome.storage.local.get("numSnapshots", function(result){
         $("#numSnapshots").html("numSnapshots: " + result.numSnapshots);
     });
@@ -13,83 +49,22 @@ $(function(){
             $("#timestampArray").append("<li>" + result.timestamps[i] + "</li>");
         }
     });
+}
 
-    $("#button").on('click',function(){
-        var snapshotNum = "Snapshot"+$("#textbox").val();
-        chrome.storage.local.get(snapshotNum, function(result){
-            if(result[snapshotNum]==undefined)
-                $("#snapshot").html("<p><b>Nope!</b></p>");
-            else{
-                console.log(result[snapshotNum]);
-                $("#snapshot").html(snapshotNum + ":<ul id=\"chromeWindows\"><li>Timestamp: " + result[snapshotNum].timestamp + "</li><p></p><li>eventIndex: " + result[snapshotNum].eventIndex + "</li><p></p></ul>");
-                for(var chromeWindow in result[snapshotNum].windows){
-                    $("#chromeWindows").append("<li>"+chromeWindow+"</li><ul><br/><li>Active Tab: "+result[snapshotNum].windows[chromeWindow].activeTab+"</li><p></p><li>Tabs:</li><ul id="+chromeWindow+"></ul></ul><br/>");
-                    for(var tab in result[snapshotNum].windows[chromeWindow].tabs){
-                        for(var key in result[snapshotNum].windows[chromeWindow].tabs[tab]){
-                            $("#"+chromeWindow).append("<li>"+key+": "+result[snapshotNum].windows[chromeWindow].tabs[tab][key]+"</li>");
-                        }
-                        $("#"+chromeWindow).append("<p></p>");
-                    }
-                }
+function displayBrowserState(title, browserState){
+    if(browserState.hasOwnProperty("timestamp"))
+        $("#snapshot").html(title + ":<ul id=\"chromeWindows\"><li>timestamp: " + browserState.timestamp + "</li><p></p><li>eventIndex: " + browserState.eventIndex + "</li><p></p></ul>");
+    else
+        $("#snapshot").html(title + ":<ul id=\"chromeWindows\"></ul>");
+    for(var chromeWindow in browserState.windows){
+        $("#chromeWindows").append("<li>"+chromeWindow+"</li><ul><br/><li>Active Tab: "+browserState.windows[chromeWindow].activeTab+"</li><p></p><li>Tabs:</li><ul id="+chromeWindow+"></ul></ul><br/>");
+        for(var tab in browserState.windows[chromeWindow].tabs){
+            for(var key in browserState.windows[chromeWindow].tabs[tab]){
+                $("#"+chromeWindow).append("<li>"+key+": "+browserState.windows[chromeWindow].tabs[tab][key]+"</li>");
             }
-        });
-    });
-
-    $("#timestampbutton").on('click',function(){
-        chrome.storage.local.get("timestamps", function(result){
-            var time = parseInt($("#timestamptextbox").val());
-            var i = findSnapshot(time,result.timestamps);
-
-/*            var x = false;
-            if(i==-1){
-                if(time<result.timestamps[0])
-                    x = true;
-                alert(i+": \n : "+time+"\n"+0+": "+result.timestamps[0]+"\n"+x);
-            }else if(i+1<result.timestamps.length){
-                if(result.timestamps[i]<time && time<result.timestamps[i+1])
-                    x = true;
-                alert(i+": "+result.timestamps[i]+"\n : "+time+"\n"+(i+1)+": "+result.timestamps[i+1]+"\n"+x);
-            }else{
-                if(result.timestamps[t]<time)
-                    x = true;
-                alert(i+": "+result.timestamps[i]+"\n : "+time+"\n"+x);
-            }*/
-
-            var snapshotNum = "Snapshot"+i;
-            chrome.storage.local.get(snapshotNum, function(result2){
-                var replayBrowserState = {};
-                replayBrowserState.tabs = result2[snapshotNum].tabs;
-                replayBrowserState.windows = result2[snapshotNum].windows;
-
-                chrome.storage.local.get("numEvents",function(result3){
-                    replayEvents(replayBrowserState, result2[snapshotNum].eventIndex, result3.numEvents, time);
-                });
-
-            });
-        });
-    });
-});
-
-function replayEvents(replayBrowserState, eventIndex, numEvents, timestamp){
-    if(eventIndex<numEvents){
-        var eventNum = "Event"+eventIndex;
-        chrome.storage.local.get(eventNum, function(events){
-            if(events[eventNum].timestamp < timestamp){
-                replayEvent(replayBrowserState, events[eventNum]);
-                replayEvents(replayBrowserState, eventIndex+1, numEvents, timestamp);
-            }else
-                keepGoing(replayBrowserState);
-        });
-    }else
-        keepGoing(replayBrowserState);
-}
-
-function replayEvent(replayBrowserState, eventI){
-
-}
-
-function keepGoing(replayBrowserState){
-
+            $("#"+chromeWindow).append("<p></p>");
+        }
+    }
 }
 
 function findSnapshot(timestamp, timestamps){ // binary search
@@ -107,6 +82,24 @@ function findSnapshot(timestamp, timestamps){ // binary search
     if(timestamp>timestamps[high])
         return high;
     return low;
+}
+
+function replayEvents(replayBrowserState, eventIndex, numEvents, timestamp){
+    if(eventIndex<numEvents){
+        var eventNum = "Event"+eventIndex;
+        chrome.storage.local.get(eventNum, function(events){
+            if(events[eventNum].timestamp < timestamp){
+                playEvent(replayBrowserState, events[eventNum]);
+                replayEvents(replayBrowserState, eventIndex+1, numEvents, timestamp);
+            }else
+                keepGoing(replayBrowserState, timestamp);
+        });
+    }else
+        keepGoing(replayBrowserState, timestamp);
+}
+
+function keepGoing(replayBrowserState, timestamp){
+    displayBrowserState(timestamp, replayBrowserState);
 }
 
 /*function copySnapshot(from, to){
