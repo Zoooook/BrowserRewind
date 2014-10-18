@@ -1,7 +1,7 @@
 //recreate browser state
 
 var eventNum;
-var nextSnapshotEventIndex=50;
+var nextSnapshotEventIndex=500;
 var currentBrowserState = {};
 
 chrome.tabs.query({},function(tabs){
@@ -45,7 +45,7 @@ function snapshot(){
             chrome.storage.local.get("numEvents",function(result2){
                 eventNum=result2.numEvents;
                 currentSnapshot.eventIndex=result2.numEvents;
-                nextSnapshotEventIndex=result2.numEvents+50;
+                nextSnapshotEventIndex=result2.numEvents+500;
                 var store={};
                 store["Snapshot"+result.numSnapshots]=currentSnapshot;
                 chrome.storage.local.set(store);
