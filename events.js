@@ -1,7 +1,6 @@
-//recreate browser state
-
 var eventNum;
-var nextSnapshotEventIndex=500;
+var snapshotEventInterval=500;
+var nextSnapshotEventIndex=snapshotEventInterval;
 var currentBrowserState = {};
 
 chrome.tabs.query({},function(tabs){
@@ -45,7 +44,7 @@ function snapshot(){
             chrome.storage.local.get("numEvents",function(result2){
                 eventNum=result2.numEvents;
                 currentSnapshot.eventIndex=result2.numEvents;
-                nextSnapshotEventIndex=result2.numEvents+500;
+                nextSnapshotEventIndex=result2.numEvents+snapshotEventInterval;
                 var store={};
                 store["Snapshot"+result.numSnapshots]=currentSnapshot;
                 chrome.storage.local.set(store);
@@ -59,7 +58,7 @@ function snapshot(){
     });
 }
 
-chrome.browserAction.onClicked.addListener(function(tab) { // I think this opens the options page when you click the icon?
+chrome.browserAction.onClicked.addListener(function(tab) {
     var optionsUrl = chrome.extension.getURL('options.html');
     chrome.tabs.query({ url: optionsUrl }, function(results) {
         if (results.length) chrome.tabs.update(results[0].id, {active:true});
