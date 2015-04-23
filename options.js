@@ -16,7 +16,7 @@ $(function(){
         var snapshotNum = "Snapshot"+$("#snapshottextbox").val();
         chrome.storage.local.get(snapshotNum, function(result){
             if(result[snapshotNum]==undefined)
-                $("#snapshot").html("<p><b>Nope!</b></p>");
+                $("#displaydata").html("<p><b>Nope!</b></p>");
             else{
                 console.log(result[snapshotNum]);
                 displayBrowserState(snapshotNum, result[snapshotNum]);
@@ -40,10 +40,39 @@ $(function(){
                     });
                 });
             }else
-                $("#snapshot").html("<p><b>Nope!</b></p>");
+                $("#displaydata").html("<p><b>Nope!</b></p>");
         });
     });
+
+    $("#eventsbutton").on('click',function(){
+        displayVariables();
+        $("#displaydata").html('');
+        start=parseInt($("#eventsstarttextbox").val());
+        end=parseInt($("#eventsendtextbox").val());
+        if(isNaN(start) || isNaN(end) || start>end)
+            $("#displaydata").html("<p><b>Nope!</b></p>");
+        else if(end-start>=500)
+            $("#displaydata").html("<p><b>Too many events requested</b></p>");
+        else
+            chrome.storage.local.get("numEvents", function(result){
+                displayEvents(Math.min(result.numEvents-1,start), Math.min(result.numEvents-1,end));
+            });
+
+    });
 });
+
+function displayEvents(eventIndex, maxEvent){
+    if(eventIndex<=maxEvent){
+        var eventNum = "Event"+eventIndex;
+        chrome.storage.local.get(eventNum, function(events){
+            $("#displaydata").append("<div>" + eventNum + ":<ul id=\"" + eventNum + "\"></ul></div>")
+            for(var key in events[eventNum]){
+                $("#"+eventNum).append("<li>" + key + ": " + events[eventNum][key] + "</li>");
+            }
+            displayEvents(eventIndex+1, maxEvent);
+        });
+    }
+}
 
 function setRecreateButtonEvent(){
     $("#recreatebutton").on('click',function(){
@@ -145,9 +174,9 @@ function displayBrowserState(title, browserState, timestamp, eventIndex){
     pendingBrowserState.windows = browserState.windows
 
     if(browserState.hasOwnProperty("timestamp"))
-        $("#snapshot").html(title + ": <input type=\"button\" id=\"recreatebutton\" value=\"Recreate\"/><ul id=\"chromeWindows\"><li>timestamp: " + browserState.timestamp + "</li><p></p><li>eventIndex: " + browserState.eventIndex + "</li><p></p></ul>");
+        $("#displaydata").html(title + ": <input type=\"button\" id=\"recreatebutton\" value=\"Recreate\"/><ul id=\"chromeWindows\"><li>timestamp: " + browserState.timestamp + "</li><p></p><li>eventIndex: " + browserState.eventIndex + "</li><p></p></ul>");
     else
-        $("#snapshot").html(title + ": <input type=\"button\" id=\"recreatebutton\" value=\"Recreate\"/><ul id=\"chromeWindows\"><li>timestamp: " + timestamp + "</li><p></p><li>eventIndex: " + eventIndex + "</li><p></p></ul>");
+        $("#displaydata").html(title + ": <input type=\"button\" id=\"recreatebutton\" value=\"Recreate\"/><ul id=\"chromeWindows\"><li>timestamp: " + timestamp + "</li><p></p><li>eventIndex: " + eventIndex + "</li><p></p></ul>");
 
     setRecreateButtonEvent();
 
@@ -175,7 +204,7 @@ function displayBrowserState(title, browserState, timestamp, eventIndex){
 }
 
 function findSnapshot(timestamp, timestamps){ // binary search
-    if(timestamp<timestamps[0] || timestamp>Date.now())
+    if(isNaN(timestamp) || timestamp<timestamps[0] || timestamp>Date.now())
         return -1;
     var low=0;
     var high=timestamps.length-1;
