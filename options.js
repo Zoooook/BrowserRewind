@@ -39,7 +39,8 @@ $(function(){
                         replayEvents(replayBrowserState, result2[snapshotNum].eventIndex, result3.numEvents, time);
                     });
                 });
-            }
+            }else
+                $("#snapshot").html("<p><b>Nope!</b></p>");
         });
     });
 });
@@ -174,7 +175,7 @@ function displayBrowserState(title, browserState, timestamp, eventIndex){
 }
 
 function findSnapshot(timestamp, timestamps){ // binary search
-    if(timestamp<timestamps[0])
+    if(timestamp<timestamps[0] || timestamp>Date.now())
         return -1;
     var low=0;
     var high=timestamps.length-1;
