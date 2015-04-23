@@ -8,6 +8,8 @@ Every time anything changes, an event is logged. Every 500 events, a snapshot is
 
 The options page displays the number of snapshots stored, the number of events stored, and the timestamps of each snapshot. When you press the Snapshot or Timestamp button to display a summary of the browser state, it gives you a Recreate button, which will restore that state to the browser. Be careful before you click that button, unless you happen to know the current timestamp so you can come back to the current state.
 
+You can display the events themselves, which is useful for finding the timestamp of a particular event. Input the starting and ending event indexes, and press the Events button (or press the other button to display the last 100 events). There is a maximum of 500 events displayed at a time.
+
 It needs a prettier interface of course, but right now it's functional if you can handle using timestamps. [(Converter)](http://www.epochconverter.com/)
 
 Using the recreate button DOES fire events that are in turn logged. Your history of recreating the state is itself stored in history.
