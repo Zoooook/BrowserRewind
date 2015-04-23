@@ -59,6 +59,14 @@ $(function(){
             });
 
     });
+
+    $("#last100eventsbutton").on('click',function(){
+        displayVariables();
+        $("#displaydata").html('');
+        chrome.storage.local.get("numEvents", function(result){
+            displayEvents(Math.max(result.numEvents-100,0), result.numEvents-1);
+        });
+    });
 });
 
 function displayEvents(eventIndex, maxEvent){
