@@ -1,3 +1,4 @@
+// add more info to event logs for display
 // make better interface than timestamp input
 // disable event logging while recreating
 // option to clear history
