@@ -4,7 +4,7 @@ var nextSnapshotEventIndex=snapshotEventInterval;
 var currentBrowserState = {};
 
 chrome.tabs.query({},function(tabs){
-//    chrome.storage.local.clear();
+    chrome.storage.local.clear();
     currentBrowserState.tabs = {};
     currentBrowserState.windows={};
     for(var i=0; i<tabs.length; ++i){
@@ -34,25 +34,29 @@ function snapshot(){
     currentSnapshot.timestamp=Date.now();
     chrome.storage.local.get("numSnapshots",function(result){
         if(result.numSnapshots==undefined){
-            currentSnapshot.eventIndex=0;
-            chrome.storage.local.set({"Snapshot0": currentSnapshot});
             chrome.storage.local.set({"numSnapshots": 1});
             chrome.storage.local.set({"numEvents": 0});
+
             eventNum=0;
+            currentSnapshot.eventIndex=0;
             chrome.storage.local.set({"timestamps": [currentSnapshot.timestamp]});
+            chrome.storage.local.set({"Snapshot0": currentSnapshot});
         }else{
+            chrome.storage.local.set({"numSnapshots": result.numSnapshots+1});
+
+            chrome.storage.local.get("timestamps",function(result2){
+                result2.timestamps.push(currentSnapshot.timestamp);
+                chrome.storage.local.set({"timestamps": result2.timestamps});
+            });
+
             chrome.storage.local.get("numEvents",function(result2){
                 eventNum=result2.numEvents;
                 currentSnapshot.eventIndex=result2.numEvents;
                 nextSnapshotEventIndex=result2.numEvents+snapshotEventInterval;
+
                 var store={};
                 store["Snapshot"+result.numSnapshots]=currentSnapshot;
                 chrome.storage.local.set(store);
-                chrome.storage.local.set({"numSnapshots": result.numSnapshots+1});
-            });
-            chrome.storage.local.get("timestamps",function(result2){
-                result2.timestamps.push(currentSnapshot.timestamp);
-                chrome.storage.local.set({"timestamps": result2.timestamps});
             });
         }
     });
@@ -60,7 +64,7 @@ function snapshot(){
 
 chrome.browserAction.onClicked.addListener(function(tab) {
     var optionsUrl = chrome.extension.getURL('options.html');
-    chrome.tabs.query({ url: optionsUrl }, function(results) {
+    chrome.tabs.query({ url: optionsUrl }, function(results){
         if (results.length) chrome.tabs.update(results[0].id, {active:true});
         else chrome.tabs.create({url:optionsUrl});
     });
